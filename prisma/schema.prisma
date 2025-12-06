@@ -1,0 +1,60 @@
+// prisma/schema.prisma
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+model Admin {
+  id        Int      @id @default(autoincrement())
+  name      String
+  phone     String?   // فقط همین، بدون @db.VarChar
+  email     String    @unique
+  password  String
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Resume {
+  id           Int          @id @default(autoincrement())
+  fullName     String
+  title        String
+  about        String
+  email        String
+  githubUrl    String?
+  linkedinUrl  String?
+  updatedAt    DateTime     @updatedAt
+
+  profileImageUrl String?
+
+  skills       Skill[]
+  experiences  Experience[]
+}
+
+model Skill {
+  id          Int      @id @default(autoincrement())
+  name        String
+  category    String?
+  orderIndex  Int       @default(0)
+
+  resumeId    Int
+  resume      Resume   @relation(fields: [resumeId], references: [id])
+}
+
+model Experience {
+  id          Int      @id @default(autoincrement())
+  company     String
+  role        String
+  location    String?
+  startDate   DateTime
+  endDate     DateTime?
+  description String
+  orderIndex  Int       @default(0)
+
+  resumeId    Int
+  resume      Resume   @relation(fields: [resumeId], references: [id])
+}
