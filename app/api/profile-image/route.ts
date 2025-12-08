@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth";
 import fs from "fs/promises";
 import path from "path";
 import { randomUUID } from "crypto";
+import { prisma } from "@/lib/prisma"; // 👈 اضافه شد
 
 export const runtime = "nodejs";
 
@@ -66,10 +67,48 @@ export async function POST(req: NextRequest) {
     // URL قابل دسترس از سمت کلاینت
     const publicUrl = `/uploads/${fileName}`;
 
-    return NextResponse.json(
-        {
-            url: publicUrl
-        },
-        { status: 200 }
-    );
+    // 👇 از اینجا به بعد: آپدیت رزومه با آدرس عکس
+
+    try {
+        // فرض: فقط یک رزومه داریم
+        const resume = await prisma.resume.findFirst();
+
+        if (!resume) {
+            // اگر رزومه‌ای وجود نداشت، می‌تونی اینجا یا error بدی
+            // یا حتی یه رزومه خالی بسازی؛ فعلاً error می‌دیم
+            return NextResponse.json(
+                { error: "No resume found to attach profile image." },
+                { status: 404 }
+            );
+        }
+
+        const updated = await prisma.resume.update(
+            {
+                where:
+                {
+                    id: resume.id
+                },
+                data:
+                {
+                    // اگر تو schema.prisma اسم فیلد چیز دیگه‌ایه، اینجا عوضش کن
+                    profileImageUrl: publicUrl
+                }
+            });
+
+        return NextResponse.json(
+            {
+                url: publicUrl,
+                resumeId: updated.id
+            },
+            { status: 200 }
+        );
+    }
+    catch (err) {
+        console.error("Error updating resume profile image:", err);
+
+        return NextResponse.json(
+            { error: "File saved, but failed to update resume." },
+            { status: 500 }
+        );
+    }
 }
